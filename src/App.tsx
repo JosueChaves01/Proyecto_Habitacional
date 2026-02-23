@@ -1,19 +1,32 @@
-import { useState, useMemo } from 'react';
-import { Property, Project, FilterOptions } from './types/property';
-import { properties, projects } from './data/mockData';
+import { useState, useMemo, useEffect } from 'react';
+import { Property, Project, FilterOptions, Developer } from './types/property';
+import { properties, projects, developers } from './data/mockData';
+import { GoogleMapsProvider } from './components/GoogleMapsProvider';
 import { Navbar } from './components/Navbar';
+import { Footer } from './components/Footer';
 import { PropertyFilters } from './components/PropertyFilters';
 import { PropertyDetail } from './components/PropertyDetail';
 import { ProjectSection } from './components/ProjectSection';
 import { ProjectDetailView } from './components/ProjectDetailView';
 import { FilteredPropertiesList } from './components/FilteredPropertiesList';
+import { HomePage } from './components/HomePage';
+import { AllProjectsView } from './components/AllProjectsView';
+import { AllPropertiesView } from './components/AllPropertiesView';
+import { AboutPage } from './components/AboutPage';
+import { ContactPage } from './components/ContactPage';
+import { AdminAuth } from './components/AdminAuth';
+import { AdminDashboard } from './components/AdminDashboard';
+import ProjectKickoff from './components/ProjectKickoff';
 import { Search } from 'lucide-react';
 import { Input } from './components/ui/input';
+import { Button } from './components/ui/button';
+import { ImageWithFallback } from './components/figma/ImageWithFallback';
 
-type ViewMode = 'catalog' | 'property-detail' | 'project-detail';
+type ViewMode = 'home' | 'catalog' | 'property-detail' | 'project-detail' | 'all-projects' | 'all-properties' | 'about' | 'contact' | 'admin-dashboard' | 'kickoff';
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<ViewMode>('catalog');
+  const [currentView, setCurrentView] = useState<ViewMode>('home');
+  const [selectedDeveloperId, setSelectedDeveloperId] = useState<string | null>(null);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -27,6 +40,21 @@ export default function App() {
     maxArea: 1000,
     status: []
   });
+
+  // Auth state
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState<{ email: string; name: string; userId: string } | null>(null);
+
+  // Check for existing session on mount
+  useEffect(() => {
+    const sessionData = localStorage.getItem('adminSession');
+    if (sessionData) {
+      const session = JSON.parse(sessionData);
+      setCurrentUser(session);
+      setIsAuthenticated(true);
+    }
+  }, []);
 
   // Check if any filters are active
   const hasActiveFilters = useMemo(() => {
@@ -53,9 +81,24 @@ export default function App() {
     );
   }, [filters, searchTerm]);
 
+  // Filter properties by selected developer (if any)
+  const developerProjects = useMemo(() => {
+    if (!selectedDeveloperId) return projects;
+    return projects.filter(project => {
+      const developer = developers.find(dev => dev.id === selectedDeveloperId);
+      return developer && project.developer === developer.name;
+    });
+  }, [selectedDeveloperId]);
+
+  const developerProperties = useMemo(() => {
+    if (!selectedDeveloperId) return properties;
+    const projectIds = developerProjects.map(project => project.id);
+    return properties.filter(property => projectIds.includes(property.projectId));
+  }, [selectedDeveloperId, developerProjects]);
+
   // Apply filters to properties
   const filteredProperties = useMemo(() => {
-    return properties.filter((property) => {
+    return developerProperties.filter((property) => {
       // Search term filter
       if (searchTerm && !property.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
           !property.description.toLowerCase().includes(searchTerm.toLowerCase())) {
@@ -94,7 +137,7 @@ export default function App() {
 
       return true;
     });
-  }, [filters, searchTerm]);
+  }, [filters, searchTerm, developerProperties]);
 
   // Group properties by project (only when no filters are active)
   const filteredProjectsWithProperties = useMemo(() => {
@@ -103,14 +146,14 @@ export default function App() {
     }
 
     // Group properties by project when no filters are active
-    return projects.map(project => {
-      const projectProperties = properties.filter(prop => prop.projectId === project.id);
+    return developerProjects.map(project => {
+      const projectProperties = developerProperties.filter(prop => prop.projectId === project.id);
       return {
         project,
         properties: projectProperties
       };
     }).filter(item => item.properties.length > 0);
-  }, [hasActiveFilters]);
+  }, [hasActiveFilters, developerProjects, developerProperties]);
 
   const totalFilteredProperties = useMemo(() => {
     if (hasActiveFilters) {
@@ -129,10 +172,65 @@ export default function App() {
     setCurrentView('project-detail');
   };
 
+  const handleSelectDeveloper = (developerId: string) => {
+    setSelectedDeveloperId(developerId);
+    setCurrentView('catalog');
+    // Reset filters when switching developers
+    clearFilters();
+  };
+
+  const handleBackToHome = () => {
+    setCurrentView('home');
+    setSelectedDeveloperId(null);
+    setSelectedPropertyId(null);
+    setSelectedProjectId(null);
+    clearFilters();
+  };
+
   const handleBackToCatalog = () => {
     setCurrentView('catalog');
     setSelectedPropertyId(null);
     setSelectedProjectId(null);
+  };
+
+  const handleNavigateToAllProjects = () => {
+    setCurrentView('all-projects');
+    setSelectedDeveloperId(null);
+    setSelectedPropertyId(null);
+    setSelectedProjectId(null);
+    clearFilters();
+  };
+
+  const handleNavigateToAllProperties = () => {
+    setCurrentView('all-properties');
+    setSelectedDeveloperId(null);
+    setSelectedPropertyId(null);
+    setSelectedProjectId(null);
+    clearFilters();
+  };
+
+  const handleNavigateToAbout = () => {
+    setCurrentView('about');
+    setSelectedDeveloperId(null);
+    setSelectedPropertyId(null);
+    setSelectedProjectId(null);
+    clearFilters();
+  };
+
+  const handleNavigateToContact = () => {
+    setCurrentView('contact');
+    setSelectedDeveloperId(null);
+    setSelectedPropertyId(null);
+    setSelectedProjectId(null);
+    clearFilters();
+  };
+
+  const handleNavigateToKickoff = () => {
+    setCurrentView('kickoff');
+    setSelectedDeveloperId(null);
+    setSelectedPropertyId(null);
+    setSelectedProjectId(null);
+    clearFilters();
   };
 
   const clearFilters = () => {
@@ -148,6 +246,34 @@ export default function App() {
     setSearchTerm('');
   };
 
+  // Auth handlers
+  const handleLoginClick = () => {
+    setIsAuthOpen(true);
+  };
+
+  const handleLoginSuccess = (userData: { email: string; name: string; userId: string }) => {
+    setCurrentUser(userData);
+    setIsAuthenticated(true);
+    localStorage.setItem('adminSession', JSON.stringify(userData));
+    setIsAuthOpen(false);
+    setCurrentView('admin-dashboard');
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setIsAuthenticated(false);
+    localStorage.removeItem('adminSession');
+    setCurrentView('home');
+  };
+
+  const handleNavigateToAdminDashboard = () => {
+    if (isAuthenticated) {
+      setCurrentView('admin-dashboard');
+    } else {
+      setIsAuthOpen(true);
+    }
+  };
+
   // Get selected items
   const selectedProperty = selectedPropertyId 
     ? properties.find(p => p.id === selectedPropertyId)
@@ -158,14 +284,231 @@ export default function App() {
     ? projects.find(p => p.id === selectedProjectId)
     : null;
 
+  const selectedDeveloper = selectedDeveloperId 
+    ? developers.find(d => d.id === selectedDeveloperId)
+    : null;
+
+  // Admin Dashboard View
+  if (currentView === 'admin-dashboard' && isAuthenticated && currentUser) {
+    return (
+      <GoogleMapsProvider>
+        <AdminDashboard 
+          userId={currentUser.userId}
+          userName={currentUser.name}
+          onBack={handleBackToHome}
+          onNavigateToKickoff={handleNavigateToKickoff}
+        />
+        <AdminAuth
+          isOpen={isAuthOpen}
+          onClose={() => setIsAuthOpen(false)}
+          onLoginSuccess={handleLoginSuccess}
+        />
+      </GoogleMapsProvider>
+    );
+  }
+
+  if (currentView === 'kickoff') {
+    return <ProjectKickoff onBack={() => setCurrentView('admin-dashboard')} />;
+  }
+
+  if (currentView === 'home') {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Navbar 
+          currentPage="home"
+          onNavigateHome={handleBackToHome}
+          onNavigateProjects={handleNavigateToAllProjects}
+          onNavigateProperties={handleNavigateToAllProperties}
+          onLoginClick={handleLoginClick}
+          isAuthenticated={isAuthenticated}
+          userName={currentUser?.name}
+          onLogout={handleLogout}
+          onNavigateToDashboard={handleNavigateToAdminDashboard}
+          onNavigateToKickoff={handleNavigateToKickoff}
+        />
+        <HomePage onSelectDeveloper={handleSelectDeveloper} />
+        <Footer 
+          onNavigateHome={handleBackToHome}
+          onNavigateProjects={handleNavigateToAllProjects}
+          onNavigateProperties={handleNavigateToAllProperties}
+          onNavigateAbout={handleNavigateToAbout}
+          onNavigateContact={handleNavigateToContact}
+        />
+        <AdminAuth
+          isOpen={isAuthOpen}
+          onClose={() => setIsAuthOpen(false)}
+          onLoginSuccess={handleLoginSuccess}
+        />
+      </div>
+    );
+  }
+
+  if (currentView === 'about') {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Navbar 
+          currentPage="about"
+          onNavigateHome={handleBackToHome}
+          onNavigateProjects={handleNavigateToAllProjects}
+          onNavigateProperties={handleNavigateToAllProperties}
+          onLoginClick={handleLoginClick}
+          isAuthenticated={isAuthenticated}
+          userName={currentUser?.name}
+          onLogout={handleLogout}
+          onNavigateToDashboard={handleNavigateToAdminDashboard}
+          onNavigateToKickoff={handleNavigateToKickoff}
+        />
+        <AboutPage />
+        <Footer 
+          onNavigateHome={handleBackToHome}
+          onNavigateProjects={handleNavigateToAllProjects}
+          onNavigateProperties={handleNavigateToAllProperties}
+          onNavigateAbout={handleNavigateToAbout}
+          onNavigateContact={handleNavigateToContact}
+        />
+        <AdminAuth
+          isOpen={isAuthOpen}
+          onClose={() => setIsAuthOpen(false)}
+          onLoginSuccess={handleLoginSuccess}
+        />
+      </div>
+    );
+  }
+
+  if (currentView === 'contact') {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Navbar 
+          currentPage="contact"
+          onNavigateHome={handleBackToHome}
+          onNavigateProjects={handleNavigateToAllProjects}
+          onNavigateProperties={handleNavigateToAllProperties}
+          onLoginClick={handleLoginClick}
+          isAuthenticated={isAuthenticated}
+          userName={currentUser?.name}
+          onLogout={handleLogout}
+          onNavigateToDashboard={handleNavigateToAdminDashboard}
+          onNavigateToKickoff={handleNavigateToKickoff}
+        />
+        <ContactPage />
+        <Footer 
+          onNavigateHome={handleBackToHome}
+          onNavigateProjects={handleNavigateToAllProjects}
+          onNavigateProperties={handleNavigateToAllProperties}
+          onNavigateAbout={handleNavigateToAbout}
+          onNavigateContact={handleNavigateToContact}
+        />
+        <AdminAuth
+          isOpen={isAuthOpen}
+          onClose={() => setIsAuthOpen(false)}
+          onLoginSuccess={handleLoginSuccess}
+        />
+      </div>
+    );
+  }
+
+  if (currentView === 'all-projects') {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Navbar 
+          currentPage="all-projects"
+          onNavigateHome={handleBackToHome}
+          onNavigateProjects={handleNavigateToAllProjects}
+          onNavigateProperties={handleNavigateToAllProperties}
+          onLoginClick={handleLoginClick}
+          isAuthenticated={isAuthenticated}
+          userName={currentUser?.name}
+          onLogout={handleLogout}
+          onNavigateToDashboard={handleNavigateToAdminDashboard}
+          onNavigateToKickoff={handleNavigateToKickoff}
+        />
+        <AllProjectsView 
+          projects={projects}
+          onViewProjectDetails={handleViewProjectDetails}
+        />
+        <Footer 
+          onNavigateHome={handleBackToHome}
+          onNavigateProjects={handleNavigateToAllProjects}
+          onNavigateProperties={handleNavigateToAllProperties}
+          onNavigateAbout={handleNavigateToAbout}
+          onNavigateContact={handleNavigateToContact}
+        />
+        <AdminAuth
+          isOpen={isAuthOpen}
+          onClose={() => setIsAuthOpen(false)}
+          onLoginSuccess={handleLoginSuccess}
+        />
+      </div>
+    );
+  }
+
+  if (currentView === 'all-properties') {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Navbar 
+          currentPage="all-properties"
+          onNavigateHome={handleBackToHome}
+          onNavigateProjects={handleNavigateToAllProjects}
+          onNavigateProperties={handleNavigateToAllProperties}
+          onLoginClick={handleLoginClick}
+          isAuthenticated={isAuthenticated}
+          userName={currentUser?.name}
+          onLogout={handleLogout}
+          onNavigateToDashboard={handleNavigateToAdminDashboard}
+          onNavigateToKickoff={handleNavigateToKickoff}
+        />
+        <AllPropertiesView 
+          properties={properties}
+          projects={projects}
+          onViewPropertyDetails={handleViewPropertyDetails}
+        />
+        <Footer 
+          onNavigateHome={handleBackToHome}
+          onNavigateProjects={handleNavigateToAllProjects}
+          onNavigateProperties={handleNavigateToAllProperties}
+          onNavigateAbout={handleNavigateToAbout}
+          onNavigateContact={handleNavigateToContact}
+        />
+        <AdminAuth
+          isOpen={isAuthOpen}
+          onClose={() => setIsAuthOpen(false)}
+          onLoginSuccess={handleLoginSuccess}
+        />
+      </div>
+    );
+  }
+
   if (currentView === 'property-detail' && selectedProperty && selectedProject) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar currentPage="detail" />
+      <div className="min-h-screen bg-background flex flex-col">
+        <Navbar 
+          currentPage="detail"
+          onNavigateHome={handleBackToHome}
+          onNavigateProjects={handleNavigateToAllProjects}
+          onNavigateProperties={handleNavigateToAllProperties}
+          onLoginClick={handleLoginClick}
+          isAuthenticated={isAuthenticated}
+          userName={currentUser?.name}
+          onLogout={handleLogout}
+          onNavigateToDashboard={handleNavigateToAdminDashboard}
+          onNavigateToKickoff={handleNavigateToKickoff}
+        />
         <PropertyDetail 
           property={selectedProperty} 
           project={selectedProject}
           onBack={handleBackToCatalog}
+        />
+        <Footer 
+          onNavigateHome={handleBackToHome}
+          onNavigateProjects={handleNavigateToAllProjects}
+          onNavigateProperties={handleNavigateToAllProperties}
+          onNavigateAbout={handleNavigateToAbout}
+          onNavigateContact={handleNavigateToContact}
+        />
+        <AdminAuth
+          isOpen={isAuthOpen}
+          onClose={() => setIsAuthOpen(false)}
+          onLoginSuccess={handleLoginSuccess}
         />
       </div>
     );
@@ -174,29 +517,96 @@ export default function App() {
   if (currentView === 'project-detail' && selectedProject) {
     const projectProperties = properties.filter(p => p.projectId === selectedProject.id);
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar currentPage="project-detail" />
-        <ProjectDetailView 
-          project={selectedProject}
-          properties={projectProperties}
-          onBack={handleBackToCatalog}
-          onViewPropertyDetails={handleViewPropertyDetails}
-        />
-      </div>
+      <GoogleMapsProvider>
+        <div className="min-h-screen bg-background flex flex-col">
+          <Navbar 
+            currentPage="project-detail"
+            onNavigateHome={handleBackToHome}
+            onNavigateProjects={handleNavigateToAllProjects}
+            onNavigateProperties={handleNavigateToAllProperties}
+            onLoginClick={handleLoginClick}
+            isAuthenticated={isAuthenticated}
+            userName={currentUser?.name}
+            onLogout={handleLogout}
+            onNavigateToDashboard={handleNavigateToAdminDashboard}
+            onNavigateToKickoff={handleNavigateToKickoff}
+          />
+          <ProjectDetailView 
+            project={selectedProject}
+            properties={projectProperties}
+            onBack={handleBackToCatalog}
+            onViewPropertyDetails={handleViewPropertyDetails}
+          />
+          <Footer 
+            onNavigateHome={handleBackToHome}
+            onNavigateProjects={handleNavigateToAllProjects}
+            onNavigateProperties={handleNavigateToAllProperties}
+            onNavigateAbout={handleNavigateToAbout}
+            onNavigateContact={handleNavigateToContact}
+          />
+          <AdminAuth
+            isOpen={isAuthOpen}
+            onClose={() => setIsAuthOpen(false)}
+            onLoginSuccess={handleLoginSuccess}
+          />
+        </div>
+      </GoogleMapsProvider>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar currentPage="home" />
+    <div className="min-h-screen bg-background flex flex-col">
+      <Navbar 
+        currentPage="catalog"
+        onNavigateHome={handleBackToHome}
+        onNavigateProjects={handleNavigateToAllProjects}
+        onNavigateProperties={handleNavigateToAllProperties}
+        onLoginClick={handleLoginClick}
+        isAuthenticated={isAuthenticated}
+        userName={currentUser?.name}
+        onLogout={handleLogout}
+        onNavigateToDashboard={handleNavigateToAdminDashboard}
+        onNavigateToKickoff={handleNavigateToKickoff}
+      />
       
-      <div className="max-w-7xl mx-auto p-4">
+      <div className="max-w-7xl mx-auto p-4 flex-1">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Catálogo de Propiedades</h1>
-          <p className="text-muted-foreground">
-            Encuentra la propiedad ideal en nuestros desarrollos habitacionales
-          </p>
+          {selectedDeveloper ? (
+            <div>
+              <div className="flex items-center gap-4 mb-4">
+                <Button 
+                  variant="outline" 
+                  onClick={handleBackToHome}
+                  className="mb-2"
+                >
+                  ← Volver a Desarrolladoras
+                </Button>
+              </div>
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted">
+                  <ImageWithFallback
+                    src={selectedDeveloper.logoUrl}
+                    alt={`Logo de ${selectedDeveloper.name}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold mb-2">{selectedDeveloper.name}</h1>
+                  <p className="text-muted-foreground">
+                    {selectedDeveloper.description}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <h1 className="text-3xl font-bold mb-2">Catálogo de Propiedades</h1>
+              <p className="text-muted-foreground">
+                Encuentra la propiedad ideal en nuestros desarrollos habitacionales
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Search Bar */}
@@ -263,6 +673,19 @@ export default function App() {
           </div>
         )}
       </div>
+
+      <Footer 
+        onNavigateHome={handleBackToHome}
+        onNavigateProjects={handleNavigateToAllProjects}
+        onNavigateProperties={handleNavigateToAllProperties}
+        onNavigateAbout={handleNavigateToAbout}
+        onNavigateContact={handleNavigateToContact}
+      />
+      <AdminAuth
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
+      />
     </div>
   );
 }

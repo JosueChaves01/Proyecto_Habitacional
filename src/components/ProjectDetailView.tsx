@@ -4,6 +4,7 @@ import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { PropertyCard } from './PropertyCard';
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import { ProjectAreaMap } from './ProjectAreaMap';
 import { 
   ArrowLeft,
   MapPin, 
@@ -74,10 +75,10 @@ export function ProjectDetailView({
               <Badge 
                 className={
                   project.status === 'terminado' 
-                    ? 'bg-green-500 text-white' 
+                    ? 'bg-green-600 text-white shadow-lg border-green-700' 
                     : project.status === 'en-construccion'
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-orange-500 text-white'
+                    ? 'bg-blue-600 text-white shadow-lg border-blue-700'
+                    : 'bg-purple-600 text-white shadow-lg border-purple-700'
                 }
               >
                 {project.status === 'terminado' 
@@ -356,6 +357,17 @@ export function ProjectDetailView({
           </CardContent>
         </Card>
       </div>
+
+      {/* Map - Show project area if available */}
+      {(project.projectArea && project.projectArea.length >= 3) || project.coordinates ? (
+        <ProjectAreaMap
+          projectName={project.name}
+          center={project.coordinates}
+          projectArea={project.projectArea}
+          showTitle={true}
+          height="500px"
+        />
+      ) : null}
 
       {/* Available Properties */}
       {availableProperties.length > 0 && (

@@ -4,6 +4,7 @@ import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { MapPin, Bed, Bath, Square, Car, Home, Trees } from 'lucide-react';
+import { getPriceGradient } from './ui/price-utils';
 
 interface PropertyCardProps {
   property: Property;
@@ -13,9 +14,9 @@ interface PropertyCardProps {
 
 export function PropertyCard({ property, project, onViewDetails }: PropertyCardProps) {
   const statusColors = {
-    disponible: 'bg-green-100 text-green-800',
-    reservado: 'bg-yellow-100 text-yellow-800',
-    vendido: 'bg-red-100 text-red-800'
+    disponible: 'bg-green-600 text-white shadow-md border-green-700',
+    reservado: 'bg-yellow-600 text-white shadow-md border-yellow-700',
+    vendido: 'bg-red-600 text-white shadow-md border-red-700'
   };
 
   const typeLabels = {
@@ -25,27 +26,31 @@ export function PropertyCard({ property, project, onViewDetails }: PropertyCardP
     penthouse: 'Penthouse'
   };
 
+  // Get dynamic price styling
+  const priceStyle = getPriceGradient(property.price);
+
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow">
-      <div className="relative">
+    <Card className="overflow-hidden hover:shadow-xl hover:shadow-primary/10 transition-all duration-300 group border-border/50 hover:border-primary/30">
+      <div className="relative overflow-hidden">
         <ImageWithFallback
           src={property.imageUrl}
           alt={property.title}
-          className="w-full h-48 object-cover"
+          className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-110"
         />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         <div className="absolute top-3 left-3">
-          <Badge className={statusColors[property.status]}>
+          <Badge className={`${statusColors[property.status]} shadow-md backdrop-blur-sm`}>
             {property.status}
           </Badge>
         </div>
         <div className="absolute top-3 right-3">
-          <Badge variant="secondary">
+          <Badge variant="secondary" className="shadow-md backdrop-blur-sm">
             {typeLabels[property.type]}
           </Badge>
         </div>
         <div className="absolute bottom-3 left-3">
-          <div className="bg-white/90 backdrop-blur-sm px-2 py-1 rounded-md">
-            <span className="font-semibold text-lg text-primary">
+          <div className={`${priceStyle.bgColor} backdrop-blur-md px-3 py-1.5 rounded-lg shadow-xl ${priceStyle.borderColor} border-2 ${priceStyle.glowColor}`}>
+            <span className={`font-semibold text-lg bg-gradient-to-r ${priceStyle.textGradient} bg-clip-text text-transparent`}>
               ${property.price.toLocaleString()}
             </span>
           </div>

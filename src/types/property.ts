@@ -16,6 +16,10 @@ export interface Property {
   parking: boolean;
   balcony: boolean;
   garden?: boolean;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
 }
 
 export interface Project {
@@ -31,6 +35,15 @@ export interface Project {
   imageUrl: string;
   developer: string;
   status: 'en-construccion' | 'terminado' | 'pre-venta';
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
+  // Área del proyecto definida por polígono o múltiples puntos
+  projectArea?: Array<{
+    lat: number;
+    lng: number;
+  }>;
   zoneInfo: {
     climate: {
       temperature: string;
@@ -68,4 +81,34 @@ export interface FilterOptions {
   minArea: number;
   maxArea: number;
   status: string[];
+}
+
+export interface Developer {
+  id: string;
+  name: string;
+  description: string;
+  logoUrl: string;
+  established?: string;
+  specialties?: string[];
+  totalProjects?: number;
+  activeProjects: number;
+  completedProjects: number;
+  experience?: string;
+  contact?: {
+    phone: string;
+    email: string;
+    website: string;
+    address: string;
+  };
+  // Alternative simplified contact fields
+  phone?: string;
+  email?: string;
+  website?: string;
+  address?: string;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
+  highlights: string[];
+  userId?: string; // Link to admin user
 }

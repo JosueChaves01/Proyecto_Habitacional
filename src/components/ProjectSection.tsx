@@ -54,10 +54,10 @@ export function ProjectSection({
               <Badge 
                 className={
                   project.status === 'terminado' 
-                    ? 'bg-green-500 text-white' 
+                    ? 'bg-green-600 text-white shadow-lg border-green-700' 
                     : project.status === 'en-construccion'
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-orange-500 text-white'
+                    ? 'bg-blue-600 text-white shadow-lg border-blue-700'
+                    : 'bg-purple-600 text-white shadow-lg border-purple-700'
                 }
               >
                 {project.status === 'terminado' 
